@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 is_directory_created = {}
-image_path = "/media/akash/ElementX/memories/IPHONE_2023_automated/"
+image_path = ""
 
 def make_folder(directory_path:str):    
     if directory_path in is_directory_created.keys():
@@ -43,7 +43,7 @@ def get_create_date_object(source_path:str):
     return datetime.strptime(create_date , "%Y:%m:%d %H:%M:%S")
 
 
-def extract_heic_opener(file_path):
+def extract_heic_opener(file_path:str):
     register_heif_opener()
     print("Number of files to process : ",len(listdir(file_path)))
     
@@ -63,4 +63,14 @@ def extract_heic_opener(file_path):
             move_file(source_path =source_path , directory_path=image_path , first_level=folder_name)
             print("moved file ",f)
 
-extract_heic_opener("/media/akash/ElementX/memories/IPHONE_2023/")
+def main():
+    source_directory = input("Enter the directory you want to organize: ")
+    destination_directory = input("Enter the directory to which you want to write: ")
+    
+    global image_path
+    image_path = destination_directory
+    extract_heic_opener(source_directory)
+
+
+if __name__ == "__main__":
+    main()
