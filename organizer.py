@@ -39,8 +39,12 @@ def get_file_type(extension:str):
 def get_create_date_object(source_path:str):
     image = Image.open(source_path)
     exif_data = image.getexif()
-    create_date  = exif_data[306]
-    return datetime.strptime(create_date , "%Y:%m:%d %H:%M:%S")
+    if 306 in exif_data.keys():
+        create_date  = exif_data[306]
+        return datetime.strptime(create_date , "%Y:%m:%d %H:%M:%S")
+    else:
+        return datetime.fromtimestamp(os.path.getmtime(source_path))
+
 
 
 def extract_heic_opener(file_path:str):
