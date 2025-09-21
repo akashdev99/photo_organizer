@@ -11,6 +11,12 @@ A cross-platform utility to organize photos and videos by date or file type.
 - Configurable organization preferences
 - Remembers your source and destination directories
 
+## TODO 
+
+- parallel batch execution 
+- support for video 
+- location based 
+
 ## Installation
 
 ### Prerequisites
