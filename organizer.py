@@ -1,80 +1,74 @@
 from pillow_heif import register_heif_opener
-from PIL import Image
-from datetime import datetime
-from os import listdir
-import os
-import shutil
 from pathlib import Path
+import config
+from utils.utils import make_folder, move_file, get_file_type, get_create_date_object
 
-is_directory_created = {}
 image_path = ""
 
-def make_folder(directory_path:str):    
-    if directory_path in is_directory_created.keys():
-        print("Yup this exists skipping")
-        return 
-
-    if not os.path.exists(directory_path):
-        os.makedirs(directory_path)
-        print(f"Directory '{directory_path}' created successfully.")
-
-    else:
-        print(f"Directory '{directory_path}' already exists.")
-    is_directory_created[directory_path] = True
-
-
-def move_file(source_path:str , directory_path:str, first_level:int, second_level:int=None):
-    if second_level:
-        destination_path = os.path.join(directory_path , str(first_level), f"{str(second_level)}/")
-    else:
-        destination_path = os.path.join(directory_path , f"{str(first_level)}/")
-    shutil.move(source_path , destination_path)
-
-def get_file_type(extension:str):
-    if extension in ["MOV" , "MP4"]:
-        return "videos"
-    else:
-        return "images"
-
-def get_create_date_object(source_path:str):
-    image = Image.open(source_path)
-    exif_data = image.getexif()
-    if 306 in exif_data.keys():
-        create_date  = exif_data[306]
-        return datetime.strptime(create_date , "%Y:%m:%d %H:%M:%S")
-    else:
-        return datetime.fromtimestamp(os.path.getmtime(source_path))
-
-
-
-def extract_heic_opener(file_path:str):
-    register_heif_opener()
-    print("Number of files to process : ",len(listdir(file_path)))
-    
-    for f in listdir(file_path):
-        source_path = os.path.join(file_path,f)
-        try:
-            create_date_obj = get_create_date_object(source_path)    
-            make_folder(os.path.join(image_path, str(create_date_obj.year)))
-            make_folder(os.path.join(image_path , str(create_date_obj.year) , str(create_date_obj.month)))  
-            move_file(source_path =source_path , directory_path=image_path , first_level=create_date_obj.year ,second_level=create_date_obj.month)
-            print("moved file ",f)
-        except Exception as e :
-            print("failed to move image to by date",e) 
-            extension = Path(source_path).suffix.replace(".","")
-            folder_name = f"{get_file_type(extension)}_{extension}"
-            make_folder(os.path.join(image_path, folder_name))
-            move_file(source_path =source_path , directory_path=image_path , first_level=folder_name)
-            print("moved file ",f)
 
 def main():
-    source_directory = input("Enter the directory you want to organize: ")
-    destination_directory = input("Enter the directory to which you want to write: ")
+    # Get default directories from config
+    default_source, default_dest = config.get_default_directories()
+    
+    # Use defaults as suggestions
+    source_directory = input(f"Enter the directory you want to organize [{default_source}]: ")
+    if not source_directory:
+        source_directory = default_source
+    
+    destination_directory = input(f"Enter the directory to which you want to write [{default_dest}]: ")
+    if not destination_directory:
+        destination_directory = default_dest
+    
+    # Save these as defaults for next time
+    cfg = config.load_config()
+    cfg['default_source_directory'] = source_directory
+    cfg['default_destination_directory'] = destination_directory
+    config.save_config(cfg)
     
     global image_path
     image_path = destination_directory
-    extract_heic_opener(source_directory)
+    organize(source_directory)
 
+# Functions moved to utils.utils
+
+
+
+def organize(file_path:str):
+    register_heif_opener()
+    file_path_obj = Path(file_path)
+    print("Number of files to process : ", len(list(file_path_obj.iterdir())))
+    
+    cfg = config.load_config()
+    organize_by_date = cfg['organize_by_date']
+    separate_by_extension = cfg['separate_by_extension']
+    
+    for f in file_path_obj.iterdir():
+        if f.is_file():
+            try:
+                if organize_by_date:
+                    create_date_obj = get_create_date_object(str(f))    
+                    year_path = Path(image_path) / str(create_date_obj.year)
+                    month_path = year_path / str(create_date_obj.month)
+                    
+                    make_folder(str(year_path))
+                    make_folder(str(month_path))  
+                    move_file(source_path=str(f), directory_path=image_path, first_level=create_date_obj.year, second_level=create_date_obj.month)
+                    print("moved file", f.name)
+                else:
+                    extension = f.suffix.replace(".", "").lower()
+                    folder_name = f"{get_file_type(extension)}_{extension}" if separate_by_extension else get_file_type(extension)
+                    extension_path = Path(image_path) / folder_name
+                    make_folder(str(extension_path))
+                    move_file(source_path=str(f), directory_path=image_path, first_level=folder_name)
+                    print("moved file", f.name)
+            except Exception as e:
+                print("failed to move image to by date", e) 
+                extension = f.suffix.replace(".", "").lower()
+                folder_name = f"{get_file_type(extension)}_{extension}" if separate_by_extension else get_file_type(extension)
+                extension_path = Path(image_path) / folder_name
+                make_folder(str(extension_path))
+                move_file(source_path=str(f), directory_path=image_path, first_level=folder_name)
+                print("moved file", f.name)
 
 if __name__ == "__main__":
     main()
