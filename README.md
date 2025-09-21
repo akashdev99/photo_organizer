@@ -23,7 +23,11 @@ A cross-platform utility to organize photos and videos by date or file type.
 # Clone the repository or download the zip file
 git clone https://github.com/yourusername/photo_organizer.git
 cd photo_organizer
-
+python -m venv <env_name>
+# Activate the virtual environment (linux/mac)
+source <env_name>/bin/activate 
+# or for Windows
+<env_name>\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 ```
